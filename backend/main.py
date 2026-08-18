@@ -197,19 +197,19 @@ def register_customer(
     for frame in bgr_frames:
         landmarks, handedness, score = detector.detect_with_meta(frame)
         if landmarks is None:
-            raise HTTPException(422, "No hand detected in uploaded palm photo")
+            raise HTTPException(status_code=422, detail="No hand detected in uploaded palm photo")
 
         is_open, open_msg = detector.is_open_palm(landmarks)
         if not is_open:
-            raise HTTPException(422, f"Registration Posture Failed: {open_msg}")
+            raise HTTPException(status_code=422, detail=f"Registration Posture Failed: {open_msg}")
 
         is_live, liveness_score, live_msg = detector.verify_liveness(frame, landmarks)
         if not is_live:
-            raise HTTPException(422, f"Registration Liveness Failed: {live_msg}")
+            raise HTTPException(status_code=422, detail=f"Registration Liveness Failed: {live_msg}")
 
         aligned = align_palm(frame, landmarks)
         if aligned is None:
-            raise HTTPException(422, "Please hold your hand vertically upright inside posture guide")
+            raise HTTPException(status_code=422, detail="Please hold your hand vertically upright inside posture guide")
 
         aligned_real.append(aligned)
         primary_handedness = handedness
@@ -231,8 +231,8 @@ def register_customer(
         existing_cust = db.query(Customer).get(dedup_cid)
         cust_name = existing_cust.name if existing_cust else f"#{dedup_cid}"
         raise HTTPException(
-            400,
-            f"⚠️ BIOMETRIC DEDUPLICATION FAILED: This palm is ALREADY enrolled under '{cust_name}' "
+            status_code=400,
+            detail=f"⚠️ BIOMETRIC DEDUPLICATION FAILED: This palm is ALREADY enrolled under '{cust_name}' "
             f"(Confidence: {dedup_score*100:.1f}%)!"
         )
 
@@ -284,7 +284,7 @@ def register_customer(
         db.rollback()
         if isinstance(e, HTTPException):
             raise e
-        raise HTTPException(500, f"Registration failed during database/gateway setup: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Registration failed during database/gateway setup: {str(e)}")
 
 
 # ---------------------------------------------------------------------------
@@ -315,8 +315,8 @@ def identify(
 
     if customer.registered_handedness and handedness and customer.registered_handedness != handedness:
         raise HTTPException(
-            400,
-            f"⚠️ HANDEDNESS MISMATCH: Customer '{customer.name}' registered with {customer.registered_handedness} hand, "
+            status_code=400,
+            detail=f"⚠️ HANDEDNESS MISMATCH: Customer '{customer.name}' registered with {customer.registered_handedness} hand, "
             f"but presented {handedness} hand! Please scan with your {customer.registered_handedness} hand."
         )
 
@@ -357,10 +357,10 @@ def identify(
 def set_amount(req: SetAmountRequest, db: Session = Depends(get_db)):
     txn = db.query(Transaction).get(req.session_id)
     if not txn or txn.status != TransactionStatus.IDENTIFIED:
-        raise HTTPException(409, "Session not in a state that accepts an amount")
+        raise HTTPException(status_code=409, detail="Session not in a state that accepts an amount")
 
     if req.amount_rupees <= 0 or req.amount_rupees > PAYMENT_CAP_RUPEES:
-        raise HTTPException(400, f"Amount must be between Rs 0 and Rs {PAYMENT_CAP_RUPEES}")
+        raise HTTPException(status_code=400, detail=f"Amount must be between Rs 0 and Rs {PAYMENT_CAP_RUPEES}")
 
     txn.amount_rupees = req.amount_rupees
     txn.status = TransactionStatus.AMOUNT_SET
@@ -380,7 +380,7 @@ def authorize(
 ):
     txn = db.query(Transaction).get(session_id)
     if not txn or txn.status not in (TransactionStatus.AMOUNT_SET, TransactionStatus.REJECTED_MISMATCH, TransactionStatus.BORDERLINE):
-        raise HTTPException(409, "Session not ready for authorization")
+        raise HTTPException(status_code=409, detail="Session not ready for authorization")
 
     embedding, handedness, liveness_score, raw_frame, aligned_roi = _detect_align_embed(palm_photo.file.read())
 
@@ -441,7 +441,7 @@ def authorize(
         )
 
     if not txn.amount_rupees or txn.amount_rupees <= 0:
-        raise HTTPException(400, "Payment amount has not been confirmed in Step 2. Please confirm amount first.")
+        raise HTTPException(status_code=400, detail="Payment amount has not been confirmed in Step 2. Please confirm amount first.")
 
     # Execute Payment Charge
     customer = db.query(Customer).get(txn.customer_id)
@@ -490,14 +490,14 @@ def authorize(
 def step_up_verify(req: StepUpVerifyRequest, db: Session = Depends(get_db)):
     txn = db.query(Transaction).get(req.session_id)
     if not txn or txn.status not in (TransactionStatus.IDENTIFIED, TransactionStatus.AMOUNT_SET, TransactionStatus.BORDERLINE):
-        raise HTTPException(409, "Session not in a state allowing step-up verification")
+        raise HTTPException(status_code=409, detail="Session not in a state allowing step-up verification")
 
     customer = db.query(Customer).get(txn.customer_id)
     if not customer:
-        raise HTTPException(404, "Customer not found")
+        raise HTTPException(status_code=404, detail="Customer not found")
 
     if not txn.amount_rupees or txn.amount_rupees <= 0:
-        raise HTTPException(400, "Payment amount has not been confirmed in Step 2. Please confirm amount first.")
+        raise HTTPException(status_code=400, detail="Payment amount has not been confirmed in Step 2. Please confirm amount first.")
 
     secret_input = req.secret.strip()
     is_valid_pin = False
