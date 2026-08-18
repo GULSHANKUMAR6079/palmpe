@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PalmPay — Biometric Micro-Payment Terminal</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #0f172a;
+      --panel-bg: rgba(30, 41, 59, 0.7);
+      --border-color: rgba(255, 255, 255, 0.1);
+      --primary: #38bdf8;
+      --primary-hover: #0284c7;
+      --accent: #818cf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(135deg, #090d16 0%, #0f172a 50%, #1e1b4b 100%);
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1100px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 16px 24px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .brand-icon {
+      font-size: 28px;
+      background: linear-gradient(135deg, #38bdf8, #818cf8);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .brand h1 {
+      font-size: 22px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    .nav-tabs {
+      display: flex;
+      gap: 8px;
+      background: rgba(15, 23, 42, 0.6);
+      padding: 4px;
+      border-radius: 10px;
+    }
+
+    .tab-btn {
+      padding: 8px 18px;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      font-size: 14px;
+      font-weight: 500;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .tab-btn.active {
+      background: var(--primary);
+      color: #0f172a;
+      font-weight: 600;
+    }
+
+    main {
+      width: 100%;
+      max-width: 1100px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+    }
+
+    @media (max-width: 900px) {
+      main { grid-template-columns: 1fr; }
+    }
+
+    .card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border-color);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+    }
+
+    .card-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .camera-box {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 4/3;
+      background: #000;
+      border-radius: 14px;
+      overflow: hidden;
+      border: 2px dashed var(--border-color);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    video, canvas {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .posture-guide {
+      position: absolute;
+      width: 55%;
+      height: 65%;
+      border: 3px dashed var(--primary);
+      border-radius: 40% 40% 50% 50%;
+      box-shadow: 0 0 20px rgba(56, 189, 248, 0.4);
+      pointer-events: none;
+    }
+
+    .form-group {
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    input {
+      width: 100%;
+      padding: 12px 14px;
+      background: rgba(15, 23, 42, 0.7);
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      color: #fff;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    input:focus {
+      border-color: var(--primary);
+    }
+
+    .btn {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      color: #0f172a;
+      font-size: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 0.1s, opacity 0.2s;
+      margin-top: 10px;
+    }
+
+    .btn:hover { opacity: 0.95; transform: translateY(-1px); }
+    .btn:active { transform: translateY(0); }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 12px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 600;
+      margin-top: 10px;
+    }
+
+    .status-matched { background: rgba(52, 211, 153, 0.2); color: var(--success); border: 1px solid var(--success); }
+    .status-borderline { background: rgba(251, 191, 36, 0.2); color: var(--warning); border: 1px solid var(--warning); }
+    .status-unmatched { background: rgba(248, 113, 113, 0.2); color: var(--danger); border: 1px solid var(--danger); }
+
+    .response-box {
+      margin-top: 16px;
+      padding: 14px;
+      background: rgba(15, 23, 42, 0.8);
+      border-radius: 10px;
+      font-family: monospace;
+      font-size: 12px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: var(--primary);
+      max-height: 200px;
+      overflow-y: auto;
+    }
+
+    /* Modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      backdrop-filter: blur(8px);
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+    }
+
+    .modal-overlay.active { display: flex; }
+
+    .modal {
+      background: var(--bg-dark);
+      border: 1px solid var(--primary);
+      border-radius: 20px;
+      padding: 28px;
+      width: 100%;
+      max-width: 400px;
+      text-align: center;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 16px;
+      font-size: 13px;
+    }
+
+    th, td {
+      padding: 10px 12px;
+      text-align: left;
+      border-bottom: 1px solid var(--border-color);
+    }
+
+    th { color: var(--text-muted); font-weight: 600; }
+  </style>
+</head>
+<body>
+
+  <header>
+    <div class="brand">
+      <span class="brand-icon">🖐️</span>
+      <div>
+        <h1>PalmPay Kiosk Terminal</h1>
+        <small style="color: var(--text-muted)">Palm-Print Biometric Autopay Pipeline</small>
+      </div>
+    </div>
+
+    <!-- Top Right Success Receipt Download Button -->
+    <div id="top-receipt-badge" style="display: none; margin-left: auto; margin-right: 16px;">
+      <a id="top-receipt-link" href="#" target="_blank" style="padding: 10px 18px; background: linear-gradient(135deg, #10b981, #059669); color: #fff; font-size: 13px; font-weight: 700; text-decoration: none; border-radius: 30px; box-shadow: 0 0 20px rgba(16, 185, 129, 0.5); display: flex; align-items: center; gap: 8px; transition: transform 0.2s;">
+        📄 Download PDF Receipt 📥
+      </a>
+    </div>
+
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('payment')">💳 Payment Session</button>
+      <button class="tab-btn" onclick="switchTab('register')">📝 Customer Enrollment</button>
+      <button class="tab-btn" onclick="switchTab('ledger')">📊 Ledger</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Left Camera View -->
+    <div class="card">
+      <div class="card-title">🎥 Live Palm Sensor Feed</div>
+      <div class="camera-box">
+        <video id="webcam" autoplay playsinline muted></video>
+        <canvas id="canvas" style="display: none;"></canvas>
+        <div class="posture-guide"></div>
+      </div>
+      <p style="font-size: 12px; color: var(--text-muted); margin-top: 10px; text-align: center;">
+        Hold palm vertically upright, open fingers fully inside guide box.
+      </p>
+    </div>
+
+    <!-- Right Interaction Panel -->
+    <div class="card" id="tab-payment">
+      <div class="card-title" style="display: flex; justify-content: space-between; align-items: center;">
+        <span>💳 Two-Scan Payment Authorization</span>
+        <a id="card-receipt-btn" href="#" target="_blank" style="display: none; padding: 6px 14px; background: rgba(52, 211, 153, 0.2); border: 1px solid #34d399; color: #34d399; font-size: 12px; font-weight: 600; border-radius: 20px; text-decoration: none; box-shadow: 0 0 12px rgba(52, 211, 153, 0.3);">
+          📄 Download PDF Receipt
+        </a>
+      </div>
+
+      <!-- Step 1: Identify -->
+      <div id="step-1">
+        <label>Merchant ID</label>
+        <input type="text" id="merchant-id" value="merch_terminal_01">
+        <button class="btn" onclick="runIdentify()">Step 1: Scan Palm to Identify</button>
+      </div>
+
+      <!-- Step 2: Set Amount -->
+      <div id="step-2" style="display: none; margin-top: 16px;">
+        <div class="status-badge status-matched" id="customer-info-badge">Matched: --</div>
+        <div class="form-group" style="margin-top: 14px;">
+          <label>Enter Amount (₹)</label>
+          <input type="number" id="amount-rupees" value="50" max="100" min="1">
+        </div>
+        <button class="btn" onclick="runSetAmount()">Step 2: Confirm Amount</button>
+      </div>
+
+      <!-- Step 3: Authorize -->
+      <div id="step-3" style="display: none; margin-top: 16px;">
+        <button class="btn" onclick="runAuthorize()">Step 3: Scan Palm AGAIN to Authorize Payment</button>
+      </div>
+
+      <button class="btn btn-secondary" id="reset-session-btn" style="margin-top: 12px;" onclick="resetPaymentSession()">🔄 Reset / New Payment Session</button>
+
+      <div id="payment-result" class="response-box" style="display: none;"></div>
+    </div>
+
+    <!-- Enrollment Panel -->
+    <div class="card" id="tab-register" style="display: none;">
+      <div class="card-title">📝 Palm Enrollment</div>
+      
+      <div class="form-group">
+        <label>Full Name</label>
+        <input type="text" id="reg-name" placeholder="John Doe">
+      </div>
+      <div class="form-group">
+        <label>Phone Number</label>
+        <input type="text" id="reg-contact" placeholder="+919876543210">
+      </div>
+      <div class="form-group">
+        <label>Email Address</label>
+        <input type="email" id="reg-email" placeholder="john@example.com">
+      </div>
+      <div class="form-group">
+        <label>UPI VPA (Virtual Payment Address)</label>
+        <input type="text" id="reg-vpa" placeholder="john@hdfcbank">
+      </div>
+      <div class="form-group">
+        <label>Fallback Step-Up PIN (4 digits)</label>
+        <input type="password" id="reg-pin" placeholder="1234" maxlength="4">
+      </div>
+
+      <button class="btn" onclick="runRegistration()">Capture 3-Frame Palm & Enroll</button>
+
+      <div id="register-result" class="response-box" style="display: none;"></div>
+    </div>
+
+    <!-- Merchant Ledger Panel -->
+    <div class="card" id="tab-ledger" style="display: none; grid-column: span 2;">
+      <div class="card-title">
+        📊 Merchant Transaction Ledger
+        <button class="btn btn-secondary" style="width: auto; padding: 6px 14px; margin-top: 0; float: right;" onclick="loadLedger()">Refresh</button>
+      </div>
+      <table>
+        <thead>
+          <tr>
+            <th>Txn ID</th>
+            <th>Date & Time</th>
+            <th>Customer</th>
+            <th>UPI VPA</th>
+            <th>Amount</th>
+            <th>Status</th>
+            <th>Payment ID</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="ledger-rows">
+          <tr><td colspan="8" style="text-align: center; color: var(--text-muted)">Click refresh to load transactions.</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+  </main>
+
+  <!-- Step-Up PIN Modal -->
+  <div class="modal-overlay" id="step-up-modal">
+    <div class="modal">
+      <h3 style="margin-bottom: 8px;">🔐 Step-Up PIN Verification</h3>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Borderline biometric match. Please enter your 4-digit secret PIN to confirm payment.
+      </p>
+      <input type="password" id="modal-pin-input" placeholder="Enter PIN" maxlength="6" style="text-align: center; font-size: 20px; letter-spacing: 6px;">
+      <button class="btn" style="margin-top: 16px;" onclick="submitStepUpPin()">Submit PIN & Authorize</button>
+      <button class="btn btn-secondary" style="margin-top: 8px;" onclick="closeModal()">Cancel</button>
+    </div>
+  </div>
+
+  <script>
+    const API_BASE = window.location.origin;
+    let video = document.getElementById('webcam');
+    let canvas = document.getElementById('canvas');
+    let currentSessionId = null;
+
+    // Start Webcam
+    async function initWebcam() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 } });
+        video.srcObject = stream;
+      } catch (err) {
+        alert("Camera error: " + err.message);
+      }
+    }
+    initWebcam();
+
+    function switchTab(tab) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.getElementById('tab-payment').style.display = 'none';
+      document.getElementById('tab-register').style.display = 'none';
+      document.getElementById('tab-ledger').style.display = 'none';
+
+      if (tab === 'payment') {
+        document.getElementById('tab-payment').style.display = 'block';
+        event.target.classList.add('active');
+      } else if (tab === 'register') {
+        document.getElementById('tab-register').style.display = 'block';
+        event.target.classList.add('active');
+      } else if (tab === 'ledger') {
+        document.getElementById('tab-ledger').style.display = 'block';
+        event.target.classList.add('active');
+        loadLedger();
+      }
+    }
+
+    function captureFrameBlob() {
+      return new Promise((resolve) => {
+        canvas.width = video.videoWidth || 640;
+        canvas.height = video.videoHeight || 480;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        canvas.toBlob((blob) => resolve(blob), 'image/jpeg', 0.95);
+      });
+    }
+
+    async function runRegistration() {
+      const name = document.getElementById('reg-name').value;
+      const contact = document.getElementById('reg-contact').value;
+      const email = document.getElementById('reg-email').value;
+      const vpa = document.getElementById('reg-vpa').value;
+      const pin = document.getElementById('reg-pin').value;
+
+      if (!name || !contact || !email || !vpa) {
+        alert("Please fill all required fields");
+        return;
+      }
+
+      const resBox = document.getElementById('register-result');
+      resBox.style.display = 'block';
+      resBox.innerText = "Capturing 3 multi-frame palm scans...";
+
+      const formData = new FormData();
+      formData.append('name', name);
+      formData.append('contact', contact);
+      formData.append('email', email);
+      formData.append('upi_vpa', vpa);
+      if (pin) formData.append('step_up_pin', pin);
+      formData.append('consent_given_at', new Date().toISOString());
+
+      // Grab 3 multi-frame bursts
+      for (let i = 0; i < 3; i++) {
+        const blob = await captureFrameBlob();
+        formData.append('palm_photos', blob, `frame_${i}.jpg`);
+        await new Promise(r => setTimeout(r, 250));
+      }
+
+      try {
+        const resp = await fetch(`${API_BASE}/customers/register`, { method: 'POST', body: formData });
+        const json = await resp.json();
+        resBox.innerText = JSON.stringify(json, null, 2);
+      } catch (err) {
+        resBox.innerText = "Error: " + err.message;
+      }
+    }
+
+    async function runIdentify() {
+      const merchantId = document.getElementById('merchant-id').value;
+      const resBox = document.getElementById('payment-result');
+      resBox.style.display = 'block';
+      resBox.innerText = "Scanning palm for identification...";
+
+      const blob = await captureFrameBlob();
+      const formData = new FormData();
+      formData.append('merchant_id', merchantId);
+      formData.append('palm_photo', blob, 'scan1.jpg');
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/identify`, { method: 'POST', body: formData });
+        const data = await resp.json();
+        resBox.innerText = JSON.stringify(data, null, 2);
+
+        if (data.matched) {
+          currentSessionId = data.session_id;
+          document.getElementById('step-1').style.display = 'none';
+          document.getElementById('step-2').style.display = 'block';
+          document.getElementById('customer-info-badge').innerText = `Matched: ${data.name} (${data.masked_upi}) - Score: ${data.confidence.toFixed(3)}`;
+
+          if (data.requires_step_up) {
+            promptStepUpPin();
+          }
+        }
+      } catch (err) {
+        resBox.innerText = "Error: " + err.message;
+      }
+    }
+
+    async function runSetAmount() {
+      const amount = parseFloat(document.getElementById('amount-rupees').value);
+      const resBox = document.getElementById('payment-result');
+      resBox.style.display = 'block';
+
+      if (!currentSessionId) {
+        resBox.innerText = "⚠️ Session Not Ready!\nPlease scan palm in Step 1 first to identify the customer.\nClick '🔄 Reset / New Payment Session' to start.";
+        return;
+      }
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/set-amount`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId, amount_rupees: amount })
+        });
+        const data = await resp.json();
+        resBox.innerText = JSON.stringify(data, null, 2);
+
+        if (data.ok) {
+          document.getElementById('step-2').style.display = 'none';
+          document.getElementById('step-3').style.display = 'block';
+        } else if (data.detail) {
+          resBox.innerText = `⚠️ ${data.detail}\nThis session amount is already confirmed. Please proceed to Step 3 or click '🔄 Reset / New Payment Session' to start a new transaction.`;
+          if (data.detail.includes("not in a state")) {
+            document.getElementById('step-2').style.display = 'none';
+            document.getElementById('step-3').style.display = 'block';
+          }
+        }
+      } catch (err) {
+        resBox.innerText = "Error: " + err.message;
+      }
+    }
+
+    function showReceiptButtons(receiptUrl) {
+      if (!receiptUrl) return;
+      const topBadge = document.getElementById('top-receipt-badge');
+      const topLink = document.getElementById('top-receipt-link');
+      const cardBtn = document.getElementById('card-receipt-btn');
+
+      if (topBadge && topLink) {
+        topLink.href = `${API_BASE}${receiptUrl}`;
+        topBadge.style.display = 'block';
+      }
+      if (cardBtn) {
+        cardBtn.href = `${API_BASE}${receiptUrl}`;
+        cardBtn.style.display = 'inline-block';
+      }
+    }
+
+    function resetPaymentSession() {
+      currentSessionId = null;
+      document.getElementById('step-1').style.display = 'block';
+      document.getElementById('step-2').style.display = 'none';
+      document.getElementById('step-3').style.display = 'none';
+      document.getElementById('top-receipt-badge').style.display = 'none';
+      document.getElementById('card-receipt-btn').style.display = 'none';
+      const resBox = document.getElementById('payment-result');
+      resBox.style.display = 'none';
+      resBox.innerText = '';
+    }
+
+    async function runAuthorize() {
+      const resBox = document.getElementById('payment-result');
+      resBox.style.display = 'block';
+
+      if (!currentSessionId) {
+        resBox.innerText = "⚠️ Session Not Ready!\nPlease complete Step 1 (Scan Palm to Identify) and Step 2 (Confirm Amount) first.\nClick '🔄 Reset / New Payment Session' to start.";
+        return;
+      }
+
+      resBox.innerText = "Scanning palm for authorization...";
+
+      const blob = await captureFrameBlob();
+      const formData = new FormData();
+      formData.append('session_id', currentSessionId);
+      formData.append('palm_photo', blob, 'scan2.jpg');
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/authorize`, { method: 'POST', body: formData });
+        const data = await resp.json();
+        resBox.innerText = JSON.stringify(data, null, 2);
+
+        if (data.status === 'borderline' || data.requires_step_up) {
+          promptStepUpPin();
+        } else if (data.status === 'paid') {
+          const amt = data.amount_rupees || document.getElementById('amount-rupees').value;
+          resBox.innerHTML += `\n\n🎉 PAYMENT OF ₹${amt} SUCCESSFUL!\nPDF Receipt: <a href="${API_BASE}${data.receipt_url}" target="_blank" style="color:#38bdf8">Download Certificate</a>`;
+          showReceiptButtons(data.receipt_url);
+        } else if (data.status === 'rejected_mismatch' || data.reason) {
+          resBox.innerHTML += `\n\n⚠️ Scan Failed: ${data.reason || 'Palm mismatch'}\n\n` +
+            `<button class="btn" style="margin-top:8px;" onclick="runAuthorize()">🔄 Retry Step 3 Scan</button> ` +
+            `<button class="btn btn-secondary" style="margin-top:8px;" onclick="promptStepUpPin()">🔐 Enter Step-Up PIN</button>`;
+        } else if (data.detail) {
+          resBox.innerText = `⚠️ Error: ${data.detail}\nPlease click '🔄 Reset / New Payment Session' to start a new transaction.`;
+        }
+      } catch (err) {
+        resBox.innerText = "Error: " + err.message;
+      }
+    }
+
+    function promptStepUpPin() {
+      document.getElementById('step-up-modal').classList.add('active');
+    }
+
+    function closeModal() {
+      document.getElementById('step-up-modal').classList.remove('active');
+    }
+
+    async function submitStepUpPin() {
+      const pin = document.getElementById('modal-pin-input').value;
+      if (!pin) return;
+
+      const resBox = document.getElementById('payment-result');
+      closeModal();
+
+      try {
+        const resp = await fetch(`${API_BASE}/session/step-up-verify`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ session_id: currentSessionId, secret: pin })
+        });
+        const data = await resp.json();
+        resBox.innerText = JSON.stringify(data, null, 2);
+
+        if (data.status === 'paid') {
+          const amt = data.amount_rupees || document.getElementById('amount-rupees').value;
+          resBox.innerHTML += `\n\n🎉 PAYMENT OF ₹${amt} AUTHORIZED VIA STEP-UP PIN!\nPDF Receipt: <a href="${API_BASE}${data.receipt_url}" target="_blank" style="color:#38bdf8">Download Certificate</a>`;
+          showReceiptButtons(data.receipt_url);
+        }
+      } catch (err) {
+        resBox.innerText = "Error: " + err.message;
+      }
+    }
+
+    async function loadLedger() {
+      const tbody = document.getElementById('ledger-rows');
+      tbody.innerHTML = '<tr><td colspan="8">Loading transactions...</td></tr>';
+
+      try {
+        const resp = await fetch(`${API_BASE}/transactions`);
+        const data = await resp.json();
+
+        if (!data.transactions || data.transactions.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="8">No transactions recorded yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = data.transactions.map(t => `
+          <tr>
+            <td>#${t.id}</td>
+            <td>${new Date(t.created_at).toLocaleString()}</td>
+            <td><strong>${t.customer_name || 'N/A'}</strong></td>
+            <td>${t.masked_upi || 'N/A'}</td>
+            <td>₹${(t.amount_rupees || 0).toFixed(2)}</td>
+            <td><span class="status-badge status-${t.status === 'paid' ? 'matched' : 'unmatched'}">${t.status}</span></td>
+            <td>${t.razorpay_payment_id || 'N/A'}</td>
+            <td><a href="${API_BASE}/receipts/${t.id}" target="_blank" style="color:var(--primary)">PDF Receipt</a></td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = `<tr><td colspan="8" style="color:var(--danger)">Failed to load ledger: ${err.message}</td></tr>`;
+      }
+    }
+  </script>
+</body>
+</html>

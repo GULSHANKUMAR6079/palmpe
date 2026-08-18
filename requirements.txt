@@ -1,0 +1,27 @@
+# Core Computer Vision & Biometrics
+mediapipe>=0.10.0
+opencv-python>=4.8.0
+numpy
+scikit-learn
+scikit-image
+joblib
+
+# Deep Learning & ONNX Model Runtime (Optional for Track B)
+torch
+torchvision
+onnx
+onnxruntime
+onnxscript
+
+# Receipt Generation & Utilities
+reportlab
+python-dotenv
+
+# Backend & Web API
+fastapi
+uvicorn[standard]
+sqlalchemy
+pydantic
+python-multipart
+razorpay
+websockets

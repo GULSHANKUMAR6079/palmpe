@@ -1,0 +1,29 @@
+# Virtual Environments
+newvenv/
+venv/
+.venv/
+env/
+ENV/
+
+# Python Cache & Compiled Files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# IDE & OS Junk
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# User Secrets & Environment Configuration
+.env
+!.env.example
+
+# NOTE: The following critical trained model artifacts and database files are EXPLICITLY TRACKED
+# so anyone cloning this repository can run PalmPay instantly out-of-the-box:
+# - pca.joblib
+# - mobilenet_v3_palm.pth
+# - hand_landmarker.task
+# - palmpay.db
