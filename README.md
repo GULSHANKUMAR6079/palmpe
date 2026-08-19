@@ -233,6 +233,28 @@ flowchart LR
 - **Loss Function**: NT-Xent (Normalized Temperature-scaled Cross Entropy / SimCLR Loss) with Cosine Annealing Learning Rate scheduling (`train_deep.py`).
 - **Edge Deployment**: Exportable to ONNX format (`mobilenet_v3_palm.onnx`) for ONNX Runtime execution on Raspberry Pi devices.
 
+### Models Used in PalmPay
+
+1. **MediaPipe HandLandmarker (`hand_landmarker.task`)**:
+   - **Framework**: MediaPipe Vision Tasks.
+   - **Function**: Detects 21 3D hand keypoints in real time.
+   - **Usage**: Used for open-palm posture verification (`is_open_palm`), 2D cross-product hand chirality determination (Left vs Right), and palm center extraction for affine ROI alignment.
+
+2. **MobileNetV3-Small Deep CNN (`mobilenet_v3_palm.pth` / `.onnx`)**:
+   - **Framework**: PyTorch & ONNX Runtime.
+   - **Architecture**: MobileNetV3-Small backbone with custom projection head (`Linear 256 -> BatchNorm1d -> Hardswish -> Linear 128`).
+   - **Usage**: Fine-tuned via SimCLR contrastive metric learning (`train_deep.py`) to map palm photos into 128-D L2-normalized embedding vectors for high-accuracy identification.
+
+3. **Classical HOG + PCA Pipeline (`pca.joblib`)**:
+   - **Framework**: scikit-image (`hog`) & scikit-learn (`PCA`).
+   - **Usage**: CLAHE contrast enhancement followed by HOG texture descriptor extraction and 128-D PCA dimensionality reduction (`fit_pca.py`).
+
+| Model / Asset Name | Framework / Library | Primary Purpose |
+| :--- | :--- | :--- |
+| **MediaPipe HandLandmarker** (`hand_landmarker.task`) | MediaPipe Tasks | 21 Hand keypoint tracking, Posture & Chirality check |
+| **MobileNetV3-Small CNN** (`mobilenet_v3_palm.pth` / `.onnx`) | PyTorch / ONNX Runtime | Deep 128-D embedding extraction via SimCLR metric learning |
+| **HOG + PCA Pipeline** (`pca.joblib`) | scikit-image / scikit-learn | Texture extraction & 128-D PCA dimensionality reduction |
+
 ---
 
 ## 🌐 API Documentation
