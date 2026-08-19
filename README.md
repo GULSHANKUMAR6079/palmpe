@@ -49,32 +49,32 @@ PalmPay solves these challenges through a multi-layered biometric pipeline:
 
 ```mermaid
 flowchart TD
-    subgraph ClientLayer["Client / Edge Layer"]
-        UI["Kiosk Frontend / Web App (test.html)"]
-        Pi["Raspberry Pi Capture Client (pi_capture_client.py)"]
+    subgraph ClientLayer [Client Edge Layer]
+        UI["Kiosk Frontend / Web App"]
+        Pi["Raspberry Pi Capture Client"]
     end
 
-    subgraph APILayer["API & Gateway Layer (FastAPI)"]
-        Endpoint["FastAPI REST Endpoints & WS Relay Hub"]
-        CORS["CORS & Request Validation"]
+    subgraph APILayer [API Gateway Layer]
+        Endpoint["FastAPI REST Endpoints and WS Relay Hub"]
+        CORS["CORS and Request Validation"]
     end
 
-    subgraph BiometricPipeline["Biometric & ML Pipeline"]
-        MP["MediaPipe HandLandmarker (21 Keypoints)"]
-        Liveness["Liveness Check (Laplacian + Color + Multi-frame Parallax)"]
-        Align["ROI Alignment & Normalization (224x224)"]
-        Embedder["Palm Embedder (HOG + 128-D PCA / MobileNetV3)"]
-        Matcher["Dual-Threshold Matcher (High: 0.82, Low: 0.70)"]
+    subgraph BiometricPipeline [Biometric and ML Pipeline]
+        MP["MediaPipe HandLandmarker"]
+        Liveness["Liveness Check"]
+        Align["ROI Alignment and Normalization"]
+        Embedder["Palm Embedder"]
+        Matcher["Dual-Threshold Matcher"]
     end
 
-    subgraph StoragePayment["Storage & Payment Layer"]
-        DB[("SQLite Database palmpay.db")]
+    subgraph StoragePayment [Storage and Payment Layer]
+        DB[("SQLite Database")]
         RP["Razorpay Mandate Gateway Client"]
         Receipt["ReportLab PDF Generator"]
     end
 
-    UI -->|"HTTP POST / WebSocket"| Endpoint
-    Pi -->|"Direct POST / WS Stream"| Endpoint
+    UI --> Endpoint
+    Pi --> Endpoint
     Endpoint --> CORS
     CORS --> MP
     MP --> Liveness
@@ -101,56 +101,54 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start(["User at Kiosk Terminal"]) --> Choice{"Select Action"}
+    Start([User at Kiosk Terminal]) --> Choice{Select Action}
 
-    %% BRANCH 1: ENROLLMENT
-    subgraph EnrollmentFlow["1. Customer Enrollment Flow"]
-        Choice -->|"New Registration"| RegForm["Fill Profile: Name, Phone, Email, UPI VPA"]
-        RegForm --> RegCap["Capture 3 Palm Frames via Webcam"]
-        RegCap --> MP_Reg["MediaPipe 21-Point Landmark Detection"]
-        MP_Reg --> Posture_Reg{"Finger Posture Check<br/>is_open_palm()"}
-        Posture_Reg -->|"Fail"| Err_Reg1["Prompt: Open Palm Fully"]
-        Posture_Reg -->|"Pass"| Live_Reg{"Tissue & Motion Liveness Check<br/>Laplacian + Color Std + Parallax"}
-        Live_Reg -->|"Spoof Detected"| Err_Reg2["Reject: Spoof Check Failed"]
-        Live_Reg -->|"Verified Live"| Align_Reg["Crop & Rotate Palm to 224x224 ROI"]
-        Align_Reg --> Chirality_Reg["Compute 2D Cross-Product Chirality<br/>Left vs Right"]
-        Chirality_Reg --> Embed_Reg["Extract 128-D Embedding<br/>HOG+PCA / MobileNetV3"]
-        Embed_Reg --> Dedup{"Biometric Deduplication Check<br/>Sim > 0.82 with Existing Customer?"}
-        Dedup -->|"Duplicate Palm"| Err_Reg3["Reject: Customer Already Registered"]
-        Dedup -->|"Unique Palm"| Save_Reg["Save Profile & Vectors in palmpay.db<br/>Register Razorpay UPI Autopay Mandate"]
-        Save_Reg --> RegSuccess(["Registration Complete 🎉"])
+    subgraph EnrollmentFlow [1. Customer Enrollment Flow]
+        Choice -->|New Registration| RegForm[Fill Profile: Name, Phone, Email, UPI]
+        RegForm --> RegCap[Capture 3 Palm Frames via Webcam]
+        RegCap --> MP_Reg[MediaPipe 21-Point Landmark Detection]
+        MP_Reg --> Posture_Reg{Finger Posture Check}
+        Posture_Reg -->|Fail| Err_Reg1[Prompt: Open Palm Fully]
+        Posture_Reg -->|Pass| Live_Reg{Tissue and Motion Liveness Check}
+        Live_Reg -->|Spoof Detected| Err_Reg2[Reject: Spoof Check Failed]
+        Live_Reg -->|Verified Live| Align_Reg[Crop and Rotate Palm to 224x224 ROI]
+        Align_Reg --> Chirality_Reg[Compute 2D Cross-Product Chirality]
+        Chirality_Reg --> Embed_Reg[Extract 128-D Embedding Vector]
+        Embed_Reg --> Dedup{Biometric Deduplication Check}
+        Dedup -->|Duplicate Palm| Err_Reg3[Reject: Customer Already Registered]
+        Dedup -->|Unique Palm| Save_Reg[Save Profile in Database and Register Mandate]
+        Save_Reg --> RegSuccess([Registration Complete])
     end
 
-    %% BRANCH 2: PAYMENT
-    subgraph PaymentFlow["2. Two-Scan Biometric Payment Flow"]
-        Choice -->|"Make Payment"| Scan1["Scan 1: Present Palm for Identification"]
-        Scan1 --> MP_S1["MediaPipe 21-Point Landmark Detection"]
-        MP_S1 --> Live_S1{"Liveness & Posture Verification"}
-        Live_S1 -->|"Fail"| Err_S1["Reject Scan 1"]
-        Live_S1 -->|"Pass"| Align_S1["Align ROI & Extract 128-D Vector"]
-        Align_S1 --> Match_S1{"PalmMatcher.identify()<br/>Find Best DB Match"}
-        Match_S1 -->|"Score < 0.70"| Unmatched_S1["Reject: Customer Not Enrolled"]
-        Match_S1 -->|"Score >= 0.70"| CreateSession["Create Payment Session<br/>State: IDENTIFIED"]
+    subgraph PaymentFlow [2. Two-Scan Biometric Payment Flow]
+        Choice -->|Make Payment| Scan1[Scan 1: Present Palm for Identification]
+        Scan1 --> MP_S1[MediaPipe 21-Point Landmark Detection]
+        MP_S1 --> Live_S1{Liveness and Posture Verification}
+        Live_S1 -->|Fail| Err_S1[Reject Scan 1]
+        Live_S1 -->|Pass| Align_S1[Align ROI and Extract Vector]
+        Align_S1 --> Match_S1{PalmMatcher.identify}
+        Match_S1 -->|Unmatched| Unmatched_S1[Reject: Customer Not Enrolled]
+        Match_S1 -->|Matched| CreateSession[Create Payment Session]
 
-        CreateSession --> SetAmt["Set Transaction Amount<br/>Capped at max ₹100 RBI Limit"]
-        SetAmt --> SessionAmt["Session State: AMOUNT_SET"]
+        CreateSession --> SetAmt[Set Transaction Amount]
+        SetAmt --> SessionAmt[Session State: AMOUNT_SET]
 
-        SessionAmt --> Scan2["Scan 2: Present Palm to Authorize Payment"]
-        Scan2 --> MP_S2["MediaPipe Landmark & 128-D Vector Extraction"]
-        MP_S2 --> AuthCheck{"3-Way Security Check:<br/>1. Chirality Match (Left/Right)<br/>2. Customer ID Match<br/>3. Inter-Scan Cosine Sim >= 0.68"}
+        SessionAmt --> Scan2[Scan 2: Present Palm to Authorize Payment]
+        Scan2 --> MP_S2[MediaPipe Landmark and Vector Extraction]
+        MP_S2 --> AuthCheck{3-Way Security Check}
         
-        AuthCheck -->|"Security Check Failed"| Err_S2["Reject Payment Authorization"]
-        AuthCheck -->|"Passed"| AuthScore{"Evaluate Confidence Score"}
+        AuthCheck -->|Failed| Err_S2[Reject Payment Authorization]
+        AuthCheck -->|Passed| AuthScore{Evaluate Confidence Score}
         
-        AuthScore -->|"High Score (>= 0.82)"| ExecutePay["Trigger Razorpay Mandate Token Charge"]
-        AuthScore -->|"Borderline (0.70 - 0.81)"| StepUpModal["Prompt: One-Touch Verification Modal"]
+        AuthScore -->|High Score| ExecutePay[Trigger Razorpay Mandate Token Charge]
+        AuthScore -->|Borderline| StepUpModal[Prompt: One-Touch Verification Modal]
         
-        StepUpModal --> StepUpConfirm["User Clicks Confirm & Authorize"]
+        StepUpModal --> StepUpConfirm[User Clicks Confirm and Authorize]
         StepUpConfirm --> ExecutePay
 
-        ExecutePay --> GenReceipt["Generate ReportLab PDF Transaction Certificate"]
-        GenReceipt --> UpdateDB["Update Transaction Status: PAID<br/>Store Payment ID & PDF Path"]
-        UpdateDB --> PaySuccess(["Payment Success & PDF Download Available 🧾"])
+        ExecutePay --> GenReceipt[Generate ReportLab PDF Receipt]
+        GenReceipt --> UpdateDB[Update Transaction Status: PAID]
+        UpdateDB --> PaySuccess([Payment Success and PDF Receipt Ready])
     end
 ```
 
