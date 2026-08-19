@@ -30,7 +30,7 @@ def main():
             print(f"  Handedness: {c.registered_handedness or 'Unknown'}")
             print(f"  Mandate Order ID: {c.mandate_order_id or 'None'}")
             print(f"  Mandate Token ID: {c.mandate_token_id or 'Pending Approval'}")
-            print(f"  Step-Up PIN Set: {'YES' if c.step_up_pin_hash else 'NO'}")
+            print(f"  One-Touch Step-Up Active: YES")
             print(f"  Embeddings Enrolled: {len(c.embeddings)}")
             print(f"  Enrolled At: {c.created_at}")
             print("-------------------------------------------------------------------------")

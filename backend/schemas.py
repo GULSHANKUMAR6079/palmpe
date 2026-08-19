@@ -46,7 +46,7 @@ class AuthorizeResponse(BaseModel):
 
 class StepUpVerifyRequest(BaseModel):
     session_id: int
-    secret: str
+    secret: Optional[str] = ""
 
 
 class TransactionItem(BaseModel):

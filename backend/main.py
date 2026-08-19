@@ -58,7 +58,7 @@ TEMPLATES_PER_CUSTOMER = 5
 
 # Validation Regexes
 EMAIL_REGEX = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
-PHONE_REGEX = r"^\+?[0-9]{7,15}$"
+PHONE_REGEX = r"^[0-9]{10}$"
 VPA_REGEX = r"^[\w.-]+@[\w.-]+$"
 
 app = FastAPI(
@@ -166,7 +166,7 @@ def register_customer(
     if not re.match(EMAIL_REGEX, email_clean):
         raise HTTPException(400, "Invalid email address format")
     if not re.match(PHONE_REGEX, contact_clean):
-        raise HTTPException(400, "Invalid phone number format")
+        raise HTTPException(400, "Mobile number must be digits only and exactly 10 digits")
     if not re.match(VPA_REGEX, upi_vpa_clean):
         raise HTTPException(400, "Invalid UPI ID format (e.g. name@bank)")
 
@@ -238,14 +238,13 @@ def register_customer(
 
     try:
         dt_consent = datetime.fromisoformat(consent_given_at) if consent_given_at else datetime.utcnow()
-        pin_hash = _hash_pin(step_up_pin.strip()) if step_up_pin and len(step_up_pin.strip()) >= 4 else None
 
         customer = Customer(
             name=name_clean,
             contact=contact_clean,
             email=email_clean,
             upi_vpa=upi_vpa_clean,
-            step_up_pin_hash=pin_hash,
+            step_up_pin_hash=None,
             consent_given_at=dt_consent,
             consent_version=consent_version,
             registered_handedness=primary_handedness,
@@ -333,7 +332,7 @@ def identify(
     db.refresh(txn)
 
     requires_step_up = (status_label == "borderline")
-    step_up_prompt = "Enter 4-digit PIN" if requires_step_up else None
+    step_up_prompt = "One-Touch Verification Required" if requires_step_up else None
 
     return IdentifyResponse(
         matched=True,
@@ -428,8 +427,8 @@ def authorize(
         return AuthorizeResponse(
             status="borderline",
             requires_step_up=True,
-            step_up_prompt="Enter 4-digit PIN",
-            reason="Borderline biometric match score. Step-up PIN required."
+            step_up_prompt="One-Touch Verification Required",
+            reason="Borderline biometric match score. One-touch authorization required."
         )
 
     if verify_status != "paid":
@@ -498,26 +497,6 @@ def step_up_verify(req: StepUpVerifyRequest, db: Session = Depends(get_db)):
 
     if not txn.amount_rupees or txn.amount_rupees <= 0:
         raise HTTPException(status_code=400, detail="Payment amount has not been confirmed in Step 2. Please confirm amount first.")
-
-    secret_input = req.secret.strip()
-    is_valid_pin = False
-
-    # Check enrolled PIN hash or last 4 digits of phone
-    if customer.step_up_pin_hash:
-        if _hash_pin(secret_input) == customer.step_up_pin_hash:
-            is_valid_pin = True
-    
-    # Fallback to phone number matching (e.g., last 4 digits or exact contact)
-    if not is_valid_pin:
-        clean_contact = ''.join(filter(str.isdigit, customer.contact))
-        if secret_input == clean_contact[-4:] or secret_input == clean_contact:
-            is_valid_pin = True
-
-    if not is_valid_pin:
-        return AuthorizeResponse(
-            status="failed",
-            reason="Invalid Step-Up PIN or contact verification secret."
-        )
 
     # Proceed to charge payment
     token_id = customer.mandate_token_id or f"mock_token_{customer.id}"
@@ -638,13 +617,16 @@ def update_customer(customer_id: int, req: CustomerUpdateRequest, db: Session = 
     if req.name:
         c.name = req.name.strip()
     if req.contact:
-        c.contact = req.contact.strip()
+        contact_clean = req.contact.strip()
+        if not re.match(PHONE_REGEX, contact_clean):
+            raise HTTPException(400, "Mobile number must be digits only and exactly 10 digits")
+        c.contact = contact_clean
     if req.email:
         c.email = req.email.strip().lower()
     if req.upi_vpa:
         c.upi_vpa = req.upi_vpa.strip()
     if req.step_up_pin:
-        c.step_up_pin_hash = _hash_pin(req.step_up_pin.strip())
+        pass
 
     db.commit()
     db.refresh(c)

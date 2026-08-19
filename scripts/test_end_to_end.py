@@ -40,21 +40,37 @@ def run_e2e_tests():
     print("                PalmPay End-to-End Integration Test Suite                ")
     print("=========================================================================")
 
-    # 1. Customer Registration Test
-    print("\n[1] Testing POST /customers/register ...")
+    # 1. Customer Registration Validation Tests (Negative Cases)
+    print("\n[1a] Testing POST /customers/register invalid phone number formats...")
     img_bytes1 = create_synthetic_palm_image(101)
     img_bytes2 = create_synthetic_palm_image(102)
 
+    invalid_contacts = ['+919876543210', '987654321', '98765432100', '98765abcd0']
+    for invalid_c in invalid_contacts:
+        invalid_data = {
+            'name': 'Test User',
+            'contact': invalid_c,
+            'email': f'test_{invalid_c.replace("+", "")}@example.com',
+            'upi_vpa': 'test@upi',
+        }
+        files_invalid = [
+            ('palm_photos', ('frame1.jpg', img_bytes1, 'image/jpeg')),
+        ]
+        bad_resp = client.post("/customers/register", data=invalid_data, files=files_invalid)
+        assert bad_resp.status_code == 400, f"Expected 400 for invalid contact '{invalid_c}', got {bad_resp.status_code}"
+        print(f"    [✓] Rejected invalid contact '{invalid_c}' with status 400")
+
+    # 1b. Customer Registration Test (Positive Case)
+    print("\n[1b] Testing POST /customers/register with valid 10-digit mobile number...")
     files = [
         ('palm_photos', ('frame1.jpg', img_bytes1, 'image/jpeg')),
         ('palm_photos', ('frame2.jpg', img_bytes2, 'image/jpeg'))
     ]
     data = {
         'name': 'Aditya Sharma',
-        'contact': '+919876543210',
+        'contact': '9876543210',
         'email': 'aditya.sharma@example.com',
         'upi_vpa': 'aditya@hdfcbank',
-        'step_up_pin': '4321',
         'consent_given_at': '2026-08-18T10:00:00Z',
         'consent_version': 'v1.0'
     }
@@ -108,9 +124,9 @@ def run_e2e_tests():
     auth_data = resp.json()
     assert auth_data["status"] in ("paid", "borderline"), f"Authorization status: {auth_data['status']}"
 
-    # 6. Step-Up Verification Test (Fallback PIN)
+    # 6. Step-Up Verification Test (Passwordless One-Touch)
     print("\n[6] Testing POST /session/step-up-verify ...")
-    step_up_payload = {'session_id': session_id, 'secret': '4321'}
+    step_up_payload = {'session_id': session_id, 'secret': 'one_touch'}
     resp = client.post("/session/step-up-verify", json=step_up_payload)
     print(f"    Response Status: {resp.status_code}")
     print(f"    Response Body: {resp.json()}")
